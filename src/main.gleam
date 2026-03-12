@@ -1,26 +1,36 @@
 import gleam/erlang/process
+import gleam/http
+import gleam/http/request
 import mist
+import pubsub
+import sse
 import router
 import wisp
 import wisp/wisp_mist
 
 pub fn main() {
-  // This sets the logger to print INFO level logs, and other sensible defaults
-  // for a web application.
   wisp.configure_logger()
-
-  // Here we generate a secret key, but in a real application you would want to
-  // load this from somewhere so that it is not regenerated on every restart.
   let secret_key_base = wisp.random_string(64)
 
-  // Start the Mist web server.
+  let assert Ok(ps) = pubsub.start()
+  let ps_subject = ps.data
+
+  let wisp_handler =
+    wisp_mist.handler(router.handle_request(_, ps_subject), secret_key_base)
+
+  // Hybrid: SSE goes to Mist directly, everything else to Wisp
+  let handler = fn(req: request.Request(mist.Connection)) {
+    case req.method, request.path_segments(req) {
+      http.Get, ["sse"] -> sse.handler(req, ps_subject)
+      _, _ -> wisp_handler(req)
+    }
+  }
+
   let assert Ok(_) =
-    wisp_mist.handler(router.handle_request, secret_key_base)
+    handler
     |> mist.new
     |> mist.port(8000)
     |> mist.start
 
-  // The web server runs in new Erlang process, so put this one to sleep while
-  // it works concurrently.
   process.sleep_forever()
 }

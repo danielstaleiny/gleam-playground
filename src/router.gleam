@@ -1,56 +1,96 @@
-import datastar/ds_sse
-import datastar/ds_wisp
-import gleam/http.{Get}
+import gleam/dynamic/decode
+import gleam/erlang/process.{type Subject}
+import gleam/http.{Get, Post}
 import gleam/json
-import html/span.{Person}
-import web
+import gleam/list
+import gleam/result
+import gleam/uri
+import pubsub
 import wisp.{type Request, type Response}
 
-pub fn handle_request(req: Request) -> Response {
-  use _req <- web.middleware(req)
+pub fn handle_request(req: Request, ps: Subject(pubsub.Message)) -> Response {
+  // Log requests
+  use <- wisp.log_request(req)
+  // Crash protection
+  use <- wisp.rescue_crashes
+
+  // Serve static files from priv/static
+  let assert Ok(priv) = wisp.priv_directory("main")
+  use <- wisp.serve_static(req, under: "static", from: priv <> "/static")
 
   case wisp.path_segments(req) {
-    // This matches `/`.
-    [] -> root(req)
-
-    // This matches `/comments`.
-    // ["comments"] -> comments(req)
-    // // This matches `/comments/:id`.
-    // // The `id` segment is bound to a variable and passed to the handler.
-    // ["comments", id] -> show_comment(req, id)
-    // This matches all other paths.
+    [] -> index(req)
+    ["add"] -> add_person(req, ps)
     _ -> wisp.not_found()
   }
 }
 
-fn root(req: Request) -> Response {
+fn index(req: Request) -> Response {
   use <- wisp.require_method(req, Get)
-
-  // let obj = dict.new() |> dict.insert("name", "daniel") |> dict.to_list()
-  // let obj = dict.from_list(["name", "Daniel"])
-  // let obj = dict.new() |> dict.insert("name", "daniel") |> dict.to_list()
-  // dict.from_list([#("key1", "value1")
-  let obj = Person(name: "Daniel")
-
-  wisp.log_info(span.render(span.person_encode(obj)))
-
-  let json =
-    json.object([
-      #("name", json.string("Daniel")),
-      #("surname", json.string("Surname")),
-    ])
-  let events = [
-    // ds_sse.patch_signals()
-    ds_sse.patch_signals(json)
-    |> ds_sse.patch_signals_end,
-    // ds_sse.patch_elements()
-  // |> ds_sse.patch_elements_elements("<span>Hello</span>")
-  // |> ds_sse.patch_elements_end,
-  // ds_sse.patch_elements()
-  //   |> ds_sse.patch_elements_elements(span.render(obj))
-  //   |> ds_sse.patch_elements_end,
-  ]
-
-  wisp.ok()
-  |> ds_wisp.send(events)
+  wisp.html_response(index_html, 200)
 }
+
+fn add_person(req: Request, ps: Subject(pubsub.Message)) -> Response {
+  use <- wisp.require_method(req, Post)
+  use body <- wisp.require_string_body(req)
+
+  let name_decoder = {
+    use name <- decode.field("name", decode.string)
+    decode.success(name)
+  }
+  let name = case json.parse(body, name_decoder) {
+    Ok(name) -> name
+    Error(_) ->
+      uri.parse_query(body)
+      |> result.unwrap([])
+      |> list.key_find("name")
+      |> result.unwrap("")
+  }
+
+  case name {
+    "" -> wisp.bad_request("missing name")
+    _ -> {
+      process.send(ps, pubsub.Publish(pubsub.AddPerson(name)))
+
+      // Return SSE that clears the input
+      let sse_body =
+        "event: datastar-patch-signals\ndata: signals {\"name\":\"\"}\n\n"
+      wisp.ok()
+      |> wisp.set_header("content-type", "text/event-stream")
+      |> wisp.set_header("cache-control", "no-cache")
+      |> wisp.string_body(sse_body)
+    }
+  }
+}
+
+const index_html = "<!DOCTYPE html>
+<html>
+<head>
+  <title>Datastar + Gleam SSE</title>
+  <script type=\"module\" src=\"/static/datastar.min.js\"></script>
+  <style>
+    body { font-family: sans-serif; max-width: 600px; margin: 2rem auto; padding: 0 1rem; }
+    .person { padding: 0.5rem; margin: 0.25rem 0; background: #f0f0f0; border-radius: 4px; }
+    #status { color: green; font-weight: bold; }
+    input { padding: 0.5rem; margin-right: 0.5rem; }
+    button { padding: 0.5rem 1rem; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>Datastar + Gleam SSE</h1>
+
+  <div data-signals=\"{name: '', connected: false}\" data-init=\"@get('/sse')\">
+    <div>
+      <span id=\"status\" data-text=\"$connected ? 'Connected' : 'Connecting...'\"></span>
+    </div>
+
+    <div>
+      <input type=\"text\" data-bind:name placeholder=\"Enter name\" />
+      <button data-on:click=\"@post('/add')\">Add Person</button>
+    </div>
+
+    <h2>People:</h2>
+    <div id=\"people\"></div>
+  </div>
+</body>
+</html>"
