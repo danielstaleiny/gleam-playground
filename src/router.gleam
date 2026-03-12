@@ -5,6 +5,7 @@ import gleam/json
 import gleam/list
 import gleam/result
 import gleam/uri
+import ds
 import pubsub
 import wisp.{type Request, type Response}
 
@@ -53,12 +54,12 @@ fn add_person(req: Request, ps: Subject(pubsub.Message)) -> Response {
       process.send(ps, pubsub.Publish(pubsub.AddPerson(name)))
 
       // Return SSE that clears the input
-      let sse_body =
-        "event: datastar-patch-signals\ndata: signals {\"name\":\"\"}\n\n"
+      let event =
+        ds.patch_signals(json.object([#("name", json.string(""))]))
       wisp.ok()
       |> wisp.set_header("content-type", "text/event-stream")
       |> wisp.set_header("cache-control", "no-cache")
-      |> wisp.string_body(sse_body)
+      |> wisp.string_body(ds.event_to_string(event))
     }
   }
 }
@@ -67,7 +68,7 @@ const index_html = "<!DOCTYPE html>
 <html>
 <head>
   <title>Datastar + Gleam SSE</title>
-  <script type=\"module\" src=\"/static/datastar.min.js\"></script>
+  <script type=\"module\" src=\"https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.0-RC.8/bundles/datastar.js\"></script>
   <style>
     body { font-family: sans-serif; max-width: 600px; margin: 2rem auto; padding: 0 1rem; }
     .person { padding: 0.5rem; margin: 0.25rem 0; background: #f0f0f0; border-radius: 4px; }
