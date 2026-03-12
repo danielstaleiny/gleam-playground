@@ -5,3 +5,4 @@ erl_crash.dump
 .direnv
 .github
 .zed
+src/compiled/

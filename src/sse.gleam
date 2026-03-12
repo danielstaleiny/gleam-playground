@@ -1,9 +1,11 @@
+import compiled/loom/person_card
 import ds
 import gleam/erlang/process.{type Subject}
 import gleam/http/request.{type Request}
 import gleam/http/response
 import gleam/json
 import gleam/otp/actor
+import gleam/string
 import mist
 import pubsub
 
@@ -40,13 +42,14 @@ pub fn handler(
               conn,
               ds.patch_signals(json.object([
                 #("name", json.string("")),
+                #("email", json.string("")),
                 #("connected", json.bool(True)),
               ])),
             )
           actor.continue(Nil)
         }
-        PubSubEvent(pubsub.AddPerson(name)) -> {
-          let html = "<div class=\"person\"><p>" <> name <> "</p></div>"
+        PubSubEvent(pubsub.AddPerson(name, email)) -> {
+          let html = person_card.render(name:, email:) |> string.trim
           let _ =
             ds.send(conn, ds.patch_elements("#people", ds.Append, html))
           actor.continue(Nil)

@@ -1,0 +1,35 @@
+@props(title: String)
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>{{ title }}</title>
+  <script type="module" src="https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.0-RC.8/bundles/datastar.js"></script>
+  <style>
+    body { font-family: sans-serif; max-width: 600px; margin: 2rem auto; padding: 0 1rem; }
+    .person { padding: 0.5rem; margin: 0.25rem 0; background: #f0f0f0; border-radius: 4px; }
+    .person p { margin: 0.25rem 0; }
+    #status { color: green; font-weight: bold; }
+    input { padding: 0.5rem; margin-right: 0.5rem; }
+    button { padding: 0.5rem 1rem; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>{{ title }}</h1>
+
+  <div data-signals="{name: '', email: '', connected: false}" data-init="@get('/sse')">
+    <div>
+      <span id="status" data-text="$connected ? 'Connected' : 'Connecting...'"></span>
+    </div>
+
+    <div>
+      <input type="text" data-bind:name placeholder="Enter name" />
+      <input type="email" data-bind:email placeholder="Enter email" />
+      <button data-on:click="@post('/add')">Add Person</button>
+    </div>
+
+    <h2>People:</h2>
+    <div id="people"></div>
+  </div>
+</body>
+</html>

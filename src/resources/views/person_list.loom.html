@@ -1,0 +1,9 @@
+@import(models/person.{type Person})
+@props(people: List(Person))
+
+<div class="people">
+  <div class="person" l-for="person in people">
+    <p>{{ person.name }}</p>
+    <p>{{ person.email }}</p>
+  </div>
+</div>

@@ -8,7 +8,7 @@ pub type Message {
 }
 
 pub type Event {
-  AddPerson(name: String)
+  AddPerson(name: String, email: String)
 }
 
 pub fn start() {
