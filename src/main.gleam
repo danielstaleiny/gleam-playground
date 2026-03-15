@@ -1,3 +1,4 @@
+import feed_sse
 import gleam/erlang/process
 import gleam/http
 import gleam/http/request
@@ -22,6 +23,7 @@ pub fn main() {
   let handler = fn(req: request.Request(mist.Connection)) {
     case req.method, request.path_segments(req) {
       http.Get, ["sse"] -> sse.handler(req, ps_subject)
+      http.Get, ["feed", "sse"] -> feed_sse.handler(req, ps_subject)
       _, _ -> wisp_handler(req)
     }
   }

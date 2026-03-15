@@ -1,0 +1,163 @@
+@props(title: String)
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>{{ title }}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script type="module" src="https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.0-RC.8/bundles/datastar.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #fff;
+      color: #222;
+    }
+
+    .feed-container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 2.5rem 2rem;
+    }
+
+    .feed-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 2rem;
+    }
+    .feed-header h1 {
+      font-size: 1.1rem;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+      color: #333;
+    }
+    .search-bar {
+      display: flex;
+      gap: 0.35rem;
+      margin-left: auto;
+    }
+    .search-bar input {
+      width: 160px;
+      padding: 0.3rem 0.5rem;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background: #fff;
+      font-size: 0.75rem;
+      color: #333;
+      outline: none;
+    }
+    .search-bar input:focus { border-color: #bbb; }
+    .search-bar input::placeholder { color: #bbb; }
+    .search-bar select {
+      padding: 0.3rem 0.4rem;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background: #fff;
+      font-size: 0.75rem;
+      color: #333;
+    }
+    .search-bar button {
+      padding: 0.3rem 0.6rem;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background: #fff;
+      font-size: 0.75rem;
+      color: #333;
+      cursor: pointer;
+    }
+    .search-bar button:hover { background: #f0f0f0; }
+    #status { font-size: 0.65rem; color: #aaa; }
+
+    /* 2 columns mobile, 3 columns desktop */
+    .feed-grid-wrap {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+    @media (min-width: 768px) {
+      .feed-grid-wrap {
+        grid-template-columns: 1fr 1fr 1fr;
+      }
+    }
+
+    /* Grid slot: invisible, tall enough for content, positions the card */
+    .cell {
+      min-height: 200px;
+      display: flex;
+      background: transparent;
+    }
+
+    /* White card that wraps the image — this is the visible element.
+       Matches the app: white rectangle behind each photo. */
+    .cell .img-wrap {
+      position: relative;
+      overflow: hidden;
+      background: #fff;
+      cursor: pointer;
+    }
+    .cell .img-wrap img {
+      display: block;
+      max-width: 100%;
+      max-height: 100%;
+    }
+
+    /* Position classes: where the card sits within the grid slot */
+    .pos-bl { align-items: flex-end;   justify-content: flex-start; }
+    .pos-cr { align-items: center;     justify-content: flex-end; }
+    .pos-br { align-items: flex-end;   justify-content: flex-end; }
+    .pos-cc { align-items: center;     justify-content: center; }
+    .pos-cl { align-items: center;     justify-content: flex-start; }
+    .pos-bc { align-items: flex-end;   justify-content: center; }
+    .pos-tr { align-items: flex-start; justify-content: flex-end; }
+    .pos-tl { align-items: flex-start; justify-content: flex-start; }
+    .pos-tc { align-items: flex-start; justify-content: center; }
+
+    /* Size classes: big or small card relative to the cell */
+    .size-big  .img-wrap { width: 88%; height: 88%; }
+    .size-small .img-wrap { width: 65%; height: 65%; }
+
+    /* Overlay on hover */
+    .cell-overlay {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 2;
+      padding: 1.2rem 0.5rem 0.35rem;
+      background: linear-gradient(transparent, rgba(0,0,0,0.5));
+      color: #fff;
+      opacity: 0;
+      transition: opacity 0.2s;
+      display: flex;
+      flex-direction: column;
+      gap: 0.1rem;
+    }
+    .img-wrap:hover .cell-overlay { opacity: 1; }
+    .cell-date  { font-size: 0.55rem; opacity: 0.7; }
+    .cell-users { font-size: 0.65rem; font-weight: 600; }
+    .cell-place { font-size: 0.6rem; opacity: 0.8; }
+  </style>
+</head>
+<body>
+  <div class="feed-container"
+       data-signals="{search_query: '', search_type: 'user', connected: false}"
+       data-init="@get('/feed/sse')">
+
+    <div class="feed-header">
+      <h1>{{ title }}</h1>
+      <span id="status" data-text="$connected ? '' : 'connecting...'"></span>
+      <div class="search-bar">
+        <input type="text" data-bind:search_query placeholder="Search..." />
+        <select data-bind:search_type>
+          <option value="user">People</option>
+          <option value="place">Places</option>
+        </select>
+        <button data-on:click="@post('/feed/search')">Go</button>
+      </div>
+    </div>
+
+    <div id="feed-grid" class="feed-grid-wrap"></div>
+  </div>
+</body>
+</html>
