@@ -14,17 +14,13 @@ pub fn render(items items: List(MediaItem)) -> String {
     acc
       <> "\n  <div class=\"cell "
       <> runtime.display(item.cell_class)
-      <> "\">\n    <div class=\"img-wrap\">\n      <img src=\""
+      <> "\">\n    <div class=\"img-wrap\" data-on:click=\"$modal_src='"
+      <> runtime.display(item.url)
+      <> "'\">\n      <img src=\""
       <> runtime.display(item.url)
       <> "\" alt=\""
       <> runtime.display(item.tagged_users_display)
-      <> "\" loading=\"lazy\" />\n      <div class=\"cell-overlay\">\n        <span class=\"cell-date\">"
-      <> runtime.display(item.date_taken)
-      <> "</span>\n        <span class=\"cell-users\">"
-      <> runtime.display(item.tagged_users_display)
-      <> "</span>\n        <span class=\"cell-place\">"
-      <> runtime.display(item.place)
-      <> "</span>\n      </div>\n    </div>\n  </div>\n"
+      <> "\" loading=\"lazy\" />\n    </div>\n  </div>\n"
   })
   <> "\n"
 }

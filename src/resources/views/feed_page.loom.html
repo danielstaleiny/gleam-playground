@@ -76,11 +76,11 @@
       grid-template-columns: repeat(2, 1fr);
       gap: 1.5rem;
     }
-    @media (min-width: 600px)  { .feed-grid-wrap { grid-template-columns: repeat(3, 1fr); } }
-    @media (min-width: 1000px) { .feed-grid-wrap { grid-template-columns: repeat(4, 1fr); } }
-    @media (min-width: 1400px) { .feed-grid-wrap { grid-template-columns: repeat(5, 1fr); } }
-    @media (min-width: 2200px) { .feed-grid-wrap { grid-template-columns: repeat(6, 1fr); } }
-    @media (min-width: 2800px) { .feed-grid-wrap { grid-template-columns: repeat(7, 1fr); } }
+    @media (min-width: 640px)  { .feed-grid-wrap { grid-template-columns: repeat(3, 1fr); } }
+    @media (min-width: 1100px) { .feed-grid-wrap { grid-template-columns: repeat(4, 1fr); } }
+    @media (min-width: 1600px) { .feed-grid-wrap { grid-template-columns: repeat(5, 1fr); } }
+    @media (min-width: 2600px) { .feed-grid-wrap { grid-template-columns: repeat(6, 1fr); } }
+    @media (min-width: 3200px) { .feed-grid-wrap { grid-template-columns: repeat(7, 1fr); } }
 
     /* Grid slot: invisible, tall enough for content, positions the card */
     .cell {
@@ -96,6 +96,8 @@
       overflow: hidden;
       background: #fff;
       cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      outline: none;
     }
     .cell .img-wrap img {
       display: block;
@@ -138,12 +140,30 @@
     .cell-date  { font-size: 0.55rem; opacity: 0.7; }
     .cell-users { font-size: 0.65rem; font-weight: 600; }
     .cell-place { font-size: 0.6rem; opacity: 0.8; }
+
+    /* Fullscreen image modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      background: rgba(0,0,0,0.92);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    .modal-overlay img {
+      max-width: 90vw;
+      max-height: 90vh;
+      object-fit: contain;
+    }
   </style>
 </head>
 <body>
   <div class="feed-container"
-       data-signals="{search_query: '', search_type: 'user', connected: false}"
-       data-init="@get('/feed/sse')">
+       data-signals="{search_query: '', search_type: 'user', connected: false, modal_src: ''}"
+       data-init="@get('/feed/sse')"
+       data-on:keydown.window="evt.key === 'Escape' ? $modal_src = '' : ''">
 
     <div class="feed-header">
       <h1>{{ title }}</h1>
@@ -159,6 +179,12 @@
     </div>
 
     <div id="feed-grid" class="feed-grid-wrap"></div>
+  </div>
+
+  <div class="modal-overlay"
+       data-show="$modal_src !== ''"
+       data-on:click="$modal_src=''">
+    <img data-attr:src="$modal_src" />
   </div>
 </body>
 </html>

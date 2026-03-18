@@ -153,6 +153,43 @@ fn random_from(items: List(String)) -> String {
   }
 }
 
+/// A photo loaded from Supabase (with URL already resolved).
+pub type UploadedPhoto {
+  UploadedPhoto(
+    id: Int,
+    url: String,
+    people: String,
+    place: String,
+    date_taken: String,
+  )
+}
+
+/// Convert uploaded photos into MediaItems for the feed grid.
+pub fn uploaded_to_feed(photos: List(UploadedPhoto)) -> List(MediaItem) {
+  photos
+  |> list.index_map(fn(photo, _idx) {
+    let people = case photo.people {
+      "" -> []
+      p ->
+        string.split(p, ",")
+        |> list.map(string.trim)
+    }
+    MediaItem(
+      id: photo.id,
+      media_type: Photo,
+      url: photo.url,
+      date_taken: photo.date_taken,
+      tagged_users: people,
+      tagged_users_display: photo.people,
+      place: photo.place,
+      media_type_label: "Photo",
+      cell_class: "",
+    )
+  })
+  |> assign_layout
+  |> list.sort(fn(a, b) { string.compare(b.date_taken, a.date_taken) })
+}
+
 pub fn search_by_user(
   items: List(MediaItem),
   query: String,

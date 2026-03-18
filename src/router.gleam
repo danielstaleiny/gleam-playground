@@ -1,6 +1,7 @@
 import compiled/loom/feed_grid
 import compiled/loom/feed_page
 import compiled/loom/index
+import compiled/loom/upload_page
 import ds
 import gleam/dynamic/decode
 import gleam/erlang/process.{type Subject}
@@ -11,7 +12,9 @@ import gleam/result
 import gleam/string
 import gleam/uri
 import media_feed
+import models/media.{type MediaItem}
 import pubsub
+import supabase
 import wisp.{type Request, type Response}
 
 pub fn handle_request(req: Request, ps: Subject(pubsub.Message)) -> Response {
@@ -26,6 +29,7 @@ pub fn handle_request(req: Request, ps: Subject(pubsub.Message)) -> Response {
     ["add"] -> add_person(req, ps)
     ["feed"] -> feed_page(req)
     ["feed", "search"] -> feed_search(req, ps)
+    ["upload"] -> upload(req)
     _ -> wisp.not_found()
   }
 }
@@ -70,7 +74,7 @@ fn feed_search(req: Request, _ps: Subject(pubsub.Message)) -> Response {
 
   let #(search_query, search_type) = parse_search_params(body)
 
-  let items = media_feed.generate_feed()
+  let items = load_feed_items()
   let filtered = case search_query {
     "" -> items
     q ->
@@ -104,6 +108,92 @@ fn parse_search_params(body: String) -> #(String, String) {
         list.key_find(params, "search_type") |> result.unwrap("user"),
       )
     }
+  }
+}
+
+fn upload(req: Request) -> Response {
+  case req.method {
+    Get -> upload_page(req)
+    Post -> handle_upload(req)
+    _ -> wisp.method_not_allowed([Get, Post])
+  }
+}
+
+fn upload_page(_req: Request) -> Response {
+  wisp.html_response(upload_page.render(title: "Upload Photos"), 200)
+}
+
+fn handle_upload(req: Request) -> Response {
+  use formdata <- wisp.require_form(req)
+
+  case supabase.get_config() {
+    Error(_) -> {
+      wisp.internal_server_error()
+      |> wisp.string_body("Supabase not configured")
+    }
+    Ok(config) -> {
+      let people =
+        list.key_find(formdata.values, "people") |> result.unwrap("")
+      let place =
+        list.key_find(formdata.values, "place") |> result.unwrap("")
+
+      list.each(formdata.files, fn(file_pair) {
+        let #(_field, uploaded_file) = file_pair
+        let storage_path =
+          wisp.random_string(16)
+          <> file_extension(uploaded_file.file_name)
+        let content_type =
+          supabase.guess_content_type(uploaded_file.file_name)
+
+        let _ =
+          supabase.upload_from_path(
+            config,
+            uploaded_file.path,
+            storage_path,
+            content_type,
+          )
+        let _ =
+          supabase.insert_photo(config, storage_path, people, place, "")
+        Nil
+      })
+
+      wisp.redirect("/feed")
+    }
+  }
+}
+
+fn file_extension(filename: String) -> String {
+  case string.split(filename, ".") |> list.last {
+    Ok(ext) -> "." <> string.lowercase(ext)
+    Error(_) -> ".jpg"
+  }
+}
+
+/// Try loading photos from Supabase; fall back to placeholders.
+fn load_feed_items() -> List(MediaItem) {
+  case supabase.get_config() {
+    Ok(config) ->
+      case supabase.list_photos(config) {
+        Ok(photos) ->
+          case photos {
+            [] -> media_feed.generate_feed()
+            _ -> {
+              let uploaded =
+                list.map(photos, fn(p) {
+                  media_feed.UploadedPhoto(
+                    id: p.id,
+                    url: supabase.public_url(config, p.storage_path),
+                    people: p.people,
+                    place: p.place,
+                    date_taken: p.date_taken,
+                  )
+                })
+              media_feed.uploaded_to_feed(uploaded)
+            }
+          }
+        Error(_) -> media_feed.generate_feed()
+      }
+    Error(_) -> media_feed.generate_feed()
   }
 }
 

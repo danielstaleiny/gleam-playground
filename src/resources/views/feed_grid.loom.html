@@ -3,13 +3,8 @@
 
 <template l-for="item in items">
   <div class="cell {{ item.cell_class }}">
-    <div class="img-wrap">
+    <div class="img-wrap" data-on:click="$modal_src='{{ item.url }}'">
       <img src="{{ item.url }}" alt="{{ item.tagged_users_display }}" loading="lazy" />
-      <div class="cell-overlay">
-        <span class="cell-date">{{ item.date_taken }}</span>
-        <span class="cell-users">{{ item.tagged_users_display }}</span>
-        <span class="cell-place">{{ item.place }}</span>
-      </div>
     </div>
   </div>
 </template>

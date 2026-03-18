@@ -1,0 +1,125 @@
+@props(title: String)
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>{{ title }}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f8f8f8;
+      color: #222;
+    }
+    .container {
+      max-width: 540px;
+      margin: 0 auto;
+      padding: 2.5rem 1.25rem;
+    }
+    h1 {
+      font-size: 1.15rem;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+      margin-bottom: 1.75rem;
+      color: #333;
+    }
+    .upload-form {
+      display: flex;
+      flex-direction: column;
+      gap: 0.9rem;
+      background: #fff;
+      padding: 1.5rem;
+      border-radius: 10px;
+      border: 1px solid #e8e8e8;
+    }
+    .file-area {
+      border: 2px dashed #ddd;
+      border-radius: 8px;
+      padding: 2rem 1rem;
+      text-align: center;
+      transition: border-color 0.2s;
+    }
+    .file-area:hover { border-color: #999; }
+    .file-area input[type="file"] {
+      display: block;
+      margin: 0 auto 0.5rem;
+      font-size: 0.85rem;
+    }
+    .file-area p {
+      font-size: 0.75rem;
+      color: #999;
+    }
+    label {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: #666;
+      margin-bottom: 0.15rem;
+    }
+    .field { display: flex; flex-direction: column; gap: 0.25rem; }
+    input[type="text"] {
+      width: 100%;
+      padding: 0.55rem 0.65rem;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      color: #333;
+      outline: none;
+    }
+    input[type="text"]:focus { border-color: #999; }
+    input[type="text"]::placeholder { color: #ccc; }
+    .btn-upload {
+      padding: 0.65rem 1.5rem;
+      background: #222;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      margin-top: 0.25rem;
+    }
+    .btn-upload:hover { background: #444; }
+    .btn-upload:active { background: #111; }
+    .nav-links {
+      display: flex;
+      gap: 1.25rem;
+      margin-top: 1.5rem;
+    }
+    .nav-links a {
+      color: #888;
+      text-decoration: none;
+      font-size: 0.8rem;
+    }
+    .nav-links a:hover { color: #333; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>{{ title }}</h1>
+
+    <form class="upload-form" method="POST" action="/upload" enctype="multipart/form-data">
+      <div class="file-area">
+        <input type="file" name="photos" accept="image/*" multiple />
+        <p>Select photos from your library</p>
+      </div>
+
+      <div class="field">
+        <label>People</label>
+        <input type="text" name="people" placeholder="Alice, Bob, Charlie" />
+      </div>
+
+      <div class="field">
+        <label>Place</label>
+        <input type="text" name="place" placeholder="Paris, France" />
+      </div>
+
+      <button type="submit" class="btn-upload">Upload Photos</button>
+    </form>
+
+    <div class="nav-links">
+      <a href="/feed">View Feed</a>
+      <a href="/">Home</a>
+    </div>
+  </div>
+</body>
+</html>

@@ -4,11 +4,14 @@ import gleam/erlang/process.{type Subject}
 import gleam/http/request.{type Request}
 import gleam/http/response
 import gleam/json
+import gleam/list
 import gleam/otp/actor
 import gleam/string
 import media_feed
 import mist
+import models/media.{type MediaItem}
 import pubsub
+import supabase
 
 type FeedMessage {
   Init
@@ -38,7 +41,7 @@ pub fn handler(
     loop: fn(_state: Nil, message: FeedMessage, conn: mist.SSEConnection) {
       case message {
         Init -> {
-          let items = media_feed.generate_feed()
+          let items = load_feed_items()
           let html = feed_grid.render(items:) |> string.trim
 
           let _ =
@@ -56,4 +59,32 @@ pub fn handler(
       }
     },
   )
+}
+
+/// Try to load photos from Supabase; fall back to placeholder feed.
+fn load_feed_items() -> List(MediaItem) {
+  case supabase.get_config() {
+    Ok(config) ->
+      case supabase.list_photos(config) {
+        Ok(photos) ->
+          case photos {
+            [] -> media_feed.generate_feed()
+            _ -> {
+              let uploaded =
+                list.map(photos, fn(p) {
+                  media_feed.UploadedPhoto(
+                    id: p.id,
+                    url: supabase.public_url(config, p.storage_path),
+                    people: p.people,
+                    place: p.place,
+                    date_taken: p.date_taken,
+                  )
+                })
+              media_feed.uploaded_to_feed(uploaded)
+            }
+          }
+        Error(_) -> media_feed.generate_feed()
+      }
+    Error(_) -> media_feed.generate_feed()
+  }
 }
